@@ -17,6 +17,7 @@
 <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-96.png">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -841,6 +842,14 @@ function doRegister(){
   users.push(newUser);
   saveUsers(users);
   setSession(newUser);
+  // Email admin on new access request
+  sendEmailJS(
+    '[SGA] Nova Solicitação de Acesso: '+nome,
+    nome,
+    'Solicitação de Acesso ao SGA',
+    pn,
+    'Nome: '+nome+'\nPN: '+pn+'\nCargo: '+cargo+'\nE-mail: '+email+'\nJustificativa: '+just
+  );
   showAuthShell(false);
   document.getElementById('pending-email-display').textContent=email;
   showScreen('screen-pending');
@@ -1248,6 +1257,10 @@ function submitForm(){
   var fd=S.formData;for(var k in fd){if(k!=='prevDate')req.fields[k]=fd[k];}
   var reqs=getReqs();reqs.unshift(req);saveReqs(reqs);
   S.lastId=id;S.formData={};S.page='success';
+  // Send email notification
+  var _dn = S.currentUser ? S.currentUser.nome : 'Usuário';
+  var _dt = Object.entries(req.fields).map(function(e){return e[0]+': '+e[1];}).join('\n');
+  sendEmailJS('[SGA] Nova Solicitação: '+id, _dn, oi.n, id, _dt);
   renderPage();toast('✅ Registrado como '+id);
 }
 
@@ -1306,64 +1319,84 @@ function sendEmail(r){
 </div>
 
 <script>
-// ── PWA Install ──
+// ── EmailJS ──────────────────────────────────────────────────
+var EJS_KEY      = 'CONFIGURE_EMAILJS';  // substitua pela sua public key
+var EJS_SERVICE  = 'CONFIGURE_SERVICE';  // substitua pelo seu service_id
+var EJS_TEMPLATE = 'CONFIGURE_TEMPLATE'; // substitua pelo seu template_id
+var EJS_READY    = (EJS_KEY !== 'CONFIGURE_EMAILJS');
+
+if (EJS_READY && typeof emailjs !== "undefined") {
+  emailjs.init({ publicKey: EJS_KEY });
+}
+
+function sendEmailJS(subject, nome, tipo, id, detalhes) {
+  if (!EJS_READY || typeof emailjs === "undefined") {
+    // Fallback: mailto
+    var body = "Nova solicitação: " + id + "\nTipo: " + tipo + "\nPor: " + nome + "\n\n" + detalhes;
+    window.open("mailto:thalles.batista@arcelormittal.com.br?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body), "_blank");
+    return;
+  }
+  emailjs.send(EJS_SERVICE, EJS_TEMPLATE, {
+    to_email:  "thalles.batista@arcelormittal.com.br",
+    from_name: "SGA – Mina do Andrade",
+    reply_to:  "thallespetter@gmail.com",
+    subject:   subject,
+    nome:      nome,
+    tipo:      tipo,
+    id_req:    id,
+    detalhes:  detalhes
+  }).then(function() {
+    toast("📧 E-mail enviado para thalles.batista@arcelormittal.com.br!");
+  }).catch(function(err) {
+    console.warn("EmailJS error:", err);
+    toast("⚠️ E-mail: configure EmailJS nas instruções");
+  });
+}
+
+// ── PWA Install ───────────────────────────────────────────────
 var _deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', function(e) {
   e.preventDefault();
   _deferredPrompt = e;
   var banner = document.getElementById('pwa-banner');
-  if (banner) { banner.style.display = 'flex'; }
+  if (banner) banner.style.display = 'flex';
 });
 function installPWA() {
   if (!_deferredPrompt) return;
   _deferredPrompt.prompt();
   _deferredPrompt.userChoice.then(function(r) {
-    if (r.outcome === 'accepted') {
-      var banner = document.getElementById('pwa-banner');
-      if (banner) banner.style.display = 'none';
-    }
+    document.getElementById('pwa-banner').style.display = 'none';
     _deferredPrompt = null;
   });
 }
 window.addEventListener('appinstalled', function() {
-  var banner = document.getElementById('pwa-banner');
-  if (banner) banner.style.display = 'none';
-  console.log('[PWA] Instalado com sucesso!');
+  var b = document.getElementById('pwa-banner');
+  if (b) b.style.display = 'none';
 });
 
-// ── Service Worker ──
+// ── Service Worker ────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sga-automacao/sw.js').then(function(reg) {
-      console.log('[SW] Registrado:', reg.scope);
-      // Check for updates every 60s
-      setInterval(function() { reg.update(); }, 60000);
-    }).catch(function(err) {
-      console.warn('[SW] Falha ao registrar:', err);
-    });
+    navigator.serviceWorker.register('/sga-automacao/sw.js', {scope: '/sga-automacao/'})
+      .then(function(reg) {
+        console.log('[SW] v3 registrado:', reg.scope);
+        reg.update();
+      })
+      .catch(function(err) { console.warn('[SW] erro:', err); });
   });
 }
 
-// ── Handle PWA shortcuts ──
+// ── Shortcut handler ──────────────────────────────────────────
 (function() {
-  var params = new URLSearchParams(window.location.search);
-  var shortcut = params.get('shortcut');
-  if (shortcut === 'new') {
-    window.addEventListener('load', function() {
-      setTimeout(function() {
-        if (typeof navTo === 'function') navTo('sys-select');
-      }, 300);
-    });
-  } else if (shortcut === 'list') {
-    window.addEventListener('load', function() {
-      setTimeout(function() {
-        if (typeof navTo === 'function') navTo('list');
-      }, 300);
-    });
-  }
+  var sc = new URLSearchParams(window.location.search).get('shortcut');
+  if (!sc) return;
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      if (sc === 'new' && typeof navTo === 'function') navTo('sys-select');
+      if (sc === 'list' && typeof navTo === 'function') navTo('list');
+    }, 400);
+  });
 })();
 </script>
 
 </body>
-</html>
-<!-- SGA PWA - Build 20260403181120 -->
