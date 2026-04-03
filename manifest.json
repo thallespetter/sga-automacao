@@ -2,12 +2,12 @@
   "name": "SGA – Sistema de Gerenciamento da Automação",
   "short_name": "SGA",
   "description": "Gestão de Forces, Lógicas, PIMS e Controle de Acesso – ArcelorMittal Mina do Andrade",
-  "start_url": "/",
+  "start_url": "/sga-automacao/",
   "display": "standalone",
   "background_color": "#080f18",
   "theme_color": "#080f18",
   "orientation": "portrait-primary",
-  "scope": "/",
+  "scope": "/sga-automacao/",
   "lang": "pt-BR",
   "categories": ["productivity", "business"],
   "icons": [
@@ -20,28 +20,17 @@
     { "src": "icons/icon-384.png",  "sizes": "384x384", "type": "image/png", "purpose": "any maskable" },
     { "src": "icons/icon-512.png",  "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
-  "screenshots": [
-    {
-      "src": "icons/screenshot-mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "SGA – Tela inicial mobile"
-    }
-  ],
   "shortcuts": [
     {
       "name": "Nova Solicitação",
       "short_name": "Nova",
-      "description": "Criar nova solicitação",
-      "url": "/?shortcut=new",
+      "url": "/sga-automacao/?shortcut=new",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     },
     {
       "name": "Solicitações Abertas",
       "short_name": "Abertas",
-      "description": "Ver solicitações em aberto",
-      "url": "/?shortcut=list",
+      "url": "/sga-automacao/?shortcut=list",
       "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
     }
   ]

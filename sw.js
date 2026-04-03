@@ -1,23 +1,23 @@
-// SGA Service Worker v1.0
-const CACHE_NAME = 'sga-v1';
+// SGA Service Worker v1.1 – GitHub Pages subpath fix
+const CACHE_NAME = 'sga-v2';
+const BASE = '/sga-automacao';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  'https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap'
+  BASE + '/',
+  BASE + '/index.html',
+  BASE + '/manifest.json',
+  BASE + '/icons/icon-192.png',
+  BASE + '/icons/icon-512.png'
 ];
 
-// Install: cache all assets
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(ASSETS);
+    })
   );
   self.skipWaiting();
 });
 
-// Activate: clean old caches
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -27,43 +27,43 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Fetch: cache-first for assets, network-first for data
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+
+  // Only handle requests within our scope
+  if (!url.pathname.startsWith(BASE)) return;
+
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
       return fetch(e.request).then(response => {
-        if (response.ok) {
+        if (response && response.ok) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
         }
         return response;
-      }).catch(() => caches.match('/index.html'));
+      }).catch(() => {
+        // Offline fallback: serve index.html for navigation requests
+        if (e.request.mode === 'navigate') {
+          return caches.match(BASE + '/index.html');
+        }
+      });
     })
   );
 });
 
-// Background sync for pending requests
-self.addEventListener('sync', e => {
-  if (e.tag === 'sync-requests') {
-    console.log('[SW] Background sync triggered');
-  }
-});
-
-// Push notifications
 self.addEventListener('push', e => {
   const data = e.data ? e.data.json() : {};
   self.registration.showNotification(data.title || 'SGA', {
     body: data.body || 'Você tem uma atualização no SGA',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-96.png',
-    vibrate: [200, 100, 200],
-    data: { url: data.url || '/' }
+    icon: BASE + '/icons/icon-192.png',
+    badge: BASE + '/icons/icon-96.png',
+    vibrate: [200, 100, 200]
   });
 });
 
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  e.waitUntil(clients.openWindow(e.notification.data.url || '/'));
+  e.waitUntil(clients.openWindow(BASE + '/'));
 });
