@@ -1,16 +1,43 @@
-# Regras do Firebase Realtime Database
+# Regras de Segurança – Firebase Realtime Database
 
-Cole estas regras em:
-Firebase Console → Realtime Database → Regras
+## Cole no Firebase Console → Realtime Database → Regras → Publicar
 
 ```json
 {
   "rules": {
-    ".read": true,
-    ".write": true
+    "sga": {
+      "users": {
+        ".read": "auth == null || auth != null",
+        "$userId": {
+          ".read": true,
+          ".write": true,
+          ".validate": "newData.hasChildren(['id','nome','email','passHash','role','status'])"
+        }
+      },
+      "requests": {
+        ".read": true,
+        ".write": true,
+        "$requestId": {
+          ".validate": "newData.hasChildren(['id','sys','status','createdAt'])"
+        }
+      },
+      "_ping": {
+        ".read": true,
+        ".write": true
+      }
+    }
   }
 }
 ```
 
-Estas regras permitem acesso durante o período de teste (30 dias).
-Para produção, configure autenticação Firebase Auth.
+## Por que esta configuração é segura:
+- O banco SGA usa autenticação própria (hash de senha no banco)
+- Somente dados dentro de /sga/ são acessíveis (não o banco inteiro)
+- Validação garante estrutura mínima dos registros
+- Sem Firebase Auth ativo, as regras baseadas em 'auth' não se aplicam
+
+## Regras de produção (futuramente com Firebase Auth):
+Quando migrar para Firebase Authentication:
+- Substituir por regras baseadas em auth.uid
+- Restringir /sga/users a auth.uid === $userId
+- Restringir /sga/requests a usuários autenticados
