@@ -354,7 +354,7 @@ input,select,textarea,button{font-family:inherit}
 <body>
 
 <!-- ─── SETUP SCREEN ────────────────────────────────── -->
-<div id="setup-screen" style="display:none">
+<div id="setup-screen" style="display:none;pointer-events:none">
   <div class="setup-card">
     <div class="setup-logo">
       <div class="setup-logo-icon">AM</div>
@@ -1170,19 +1170,25 @@ if ('serviceWorker' in navigator) {
 //  BOOT
 // ════════════════════════════════════════════════
 (function init(){
-  var cfg = loadConfig();
-  if (!cfg) {
-    document.getElementById('setup-screen').style.display = 'flex';
-    return;
-  }
+  // ── Firebase config fixo ──────────────────────────────
+  var FIREBASE_CFG = {
+    apiKey:            "AIzaSyCaiN7hYGD2pu2XZ-1xbKTSvl3J86oLWLM",
+    authDomain:        "sga-andrade.firebaseapp.com",
+    databaseURL:       "https://sga-andrade-default-rtdb.firebaseio.com",
+    projectId:         "sga-andrade",
+    storageBucket:     "sga-andrade.firebasestorage.app",
+    messagingSenderId: "401938750730",
+    appId:             "1:401938750730:web:32f208b4431e1095eb6ef3"
+  };
 
-  if (!initFirebase(cfg)) {
-    localStorage.removeItem('sga_fb_cfg');
-    document.getElementById('setup-screen').style.display = 'flex';
+  if (!initFirebase(FIREBASE_CFG)) {
+    document.getElementById('auth-screen').style.display = 'flex';
+    showView('login');
     return;
   }
 
   startRealtime();
+  seedAdmin();
 
   var session = localStorage.getItem('sga_session');
   if (!session) {
@@ -1194,7 +1200,6 @@ if ('serviceWorker' in navigator) {
   var user = JSON.parse(session);
   S.user = user;
 
-  // Re-verify status from Firebase
   _db.ref('sga/users/'+user.id).once('value').then(snap=>{
     var fresh = snap.val();
     if (!fresh) { doLogout(); return; }
