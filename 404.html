@@ -1,0 +1,5 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><script>
+// SPA redirect: store path and go home
+sessionStorage.setItem('_redir', location.href);
+location.replace(location.origin + location.pathname.split('/').slice(0,2).join('/') + '/');
+</script></head><body></body></html>

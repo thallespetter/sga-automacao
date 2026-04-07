@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SGA">
+<meta name="theme-color" content="#080f18">
+<title>SGA – Sistema de Gerenciamento da Automação</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'Barlow',sans-serif;background:#080f18;color:#c8d6e8;overflow-x:hidden}
+input,select,textarea,button{font-family:inherit}
+:root{
+  --bg:#080f18;--card:#0d1b2a;--card2:#111f30;--card3:#162840;
+  --bdr:#1c3352;--bdrhi:#2a4a6e;
+  --acc:#1f6feb;--acc-d:rgba(31,111,235,.14);
+  --red:#d63027;--red-d:rgba(214,48,39,.14);
+  --org:#e8651a;--org-d:rgba(232,101,26,.14);
+  --grn:#2dbc6e;--grn-d:rgba(45,188,110,.14);
+  --ylw:#f5c518;--ylw-d:rgba(245,197,24,.14);
+  --t1:#e8f0fb;--t2:#7a9bbf;--t3:#3d5870;
+  --fnt:'Rajdhani',sans-serif;--r:10px;--sw:250px
+}
+
+/* ─── SETUP SCREEN ─────────────────────────────────── */
+#setup-screen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:var(--bg);
+}
+.setup-card{
+  background:var(--card);border:1px solid var(--bdr);border-radius:16px;
+  padding:32px 28px;width:100%;max-width:480px;
+  box-shadow:0 24px 64px rgba(0,0,0,.6)
+}
+.setup-logo{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.setup-logo-icon{width:44px;height:44px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--fnt);font-weight:700;font-size:18px;color:#fff}
+.setup-logo h1{font-family:var(--fnt);font-size:22px;font-weight:700;color:var(--t1)}
+.setup-logo p{font-size:11px;color:var(--t3)}
+.setup-title{font-family:var(--fnt);font-size:20px;font-weight:700;color:var(--t1);margin-bottom:6px}
+.setup-sub{font-size:12px;color:var(--t3);line-height:1.6;margin-bottom:20px}
+.setup-steps{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.setup-step{background:var(--card2);border:1px solid var(--bdr);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--t2);line-height:1.5}
+.setup-step strong{color:var(--t1);display:block;margin-bottom:2px}
+.setup-step a{color:var(--acc);text-decoration:none}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.fl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.6px}
+.fi{background:var(--card2);border:1px solid var(--bdrhi);border-radius:8px;padding:10px 12px;color:var(--t1);font-size:13px;width:100%;outline:none;transition:border-color .2s}
+.fi:focus{border-color:var(--acc)}
+.fi::placeholder{color:var(--t3)}
+.fta{background:var(--card2);border:1px solid var(--bdrhi);border-radius:8px;padding:10px 12px;color:var(--t1);font-size:12px;width:100%;outline:none;resize:vertical;min-height:90px;line-height:1.6}
+.fta:focus{border-color:var(--acc)}
+.setup-err{background:var(--red-d);border:1px solid rgba(214,48,39,.3);color:var(--red);border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:12px;display:none}
+.setup-err.show{display:block}
+.btn-full{width:100%;padding:13px;border:none;border-radius:8px;background:linear-gradient(135deg,#1f6feb,#1558c0);color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(31,111,235,.3)}
+.btn-full:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(31,111,235,.4)}
+.btn-full:disabled{opacity:.5;cursor:default;transform:none}
+.btn-ghost{width:100%;padding:11px;border:1px solid var(--bdrhi);border-radius:8px;background:transparent;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:8px}
+.btn-ghost:hover{background:var(--card2)}
+
+/* ─── AUTH SCREEN ─────────────────────────────────── */
+#auth-screen{min-height:100vh;display:none}
+.auth-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.auth-card{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:32px 28px;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(0,0,0,.6);position:relative;overflow:hidden}
+.auth-card::before{content:'';position:absolute;top:-80px;right:-60px;width:280px;height:280px;background:radial-gradient(circle,rgba(31,111,235,.1) 0%,transparent 70%);pointer-events:none}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.auth-logo-ic{width:40px;height:40px;background:var(--red);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:var(--fnt);font-weight:700;font-size:16px;color:#fff}
+.auth-logo h1{font-family:var(--fnt);font-size:20px;font-weight:700;color:var(--t1);letter-spacing:.3px}
+.auth-logo p{font-size:10px;color:var(--t3);margin-top:1px}
+.auth-title{font-family:var(--fnt);font-size:22px;font-weight:700;color:var(--t1);margin-bottom:4px}
+.auth-sub{font-size:12px;color:var(--t3);margin-bottom:22px}
+.auth-err{background:var(--red-d);border:1px solid rgba(214,48,39,.3);color:var(--red);border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:14px;display:none}
+.auth-err.show{display:block}
+.auth-link{text-align:center;margin-top:16px;font-size:12px;color:var(--t3)}
+.auth-link a{color:var(--acc);font-weight:700;cursor:pointer;text-decoration:none}
+.pending-card{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:40px 28px;width:100%;max-width:420px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.6)}
+.pending-icon{font-size:52px;margin-bottom:18px;animation:pulse 2s ease-in-out infinite;display:block}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.pending-title{font-family:var(--fnt);font-size:22px;font-weight:700;color:var(--t1);margin-bottom:8px}
+.pending-sub{font-size:12px;color:var(--t3);line-height:1.6;margin-bottom:20px}
+.pending-steps{display:flex;flex-direction:column;gap:8px;text-align:left;margin-bottom:22px}
+.pstep{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--t2)}
+.psdot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.ps-done{background:var(--grn-d);border:1px solid var(--grn);color:var(--grn)}
+.ps-wait{background:var(--ylw-d);border:1px solid var(--ylw);color:var(--ylw)}
+.ps-todo{background:var(--card3);border:1px solid var(--bdr);color:var(--t3)}
+.rejected-card{border-color:rgba(214,48,39,.3)}
+
+/* ─── APP SHELL ────────────────────────────────────── */
+#app-shell{display:none;min-height:100vh}
+#app-shell.on{display:flex}
+
+/* sidebar */
+.sidebar{
+  width:var(--sw);flex-shrink:0;background:var(--bg);border-right:1px solid var(--bdr);
+  display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200
+}
+.sb-head{padding:16px 16px 12px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px}
+.sb-ic{width:34px;height:34px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--fnt);font-weight:700;font-size:14px;color:#fff;flex-shrink:0}
+.sb-title{font-family:var(--fnt);font-size:17px;font-weight:700;color:var(--t1)}
+.sb-sub{font-size:10px;color:var(--t3)}
+.sb-online{width:7px;height:7px;border-radius:50%;background:var(--grn);margin-left:auto;flex-shrink:0;box-shadow:0 0 6px var(--grn);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.sb-nav{flex:1;overflow-y:auto;padding:8px 0}
+.sb-sec{padding:12px 16px 5px;font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.2px}
+.sb-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;margin:1px 8px;border-radius:8px;cursor:pointer;color:var(--t3);font-size:13px;font-weight:600;border:none;background:none;width:calc(100% - 16px);text-align:left;transition:all .15s}
+.sb-btn:hover{background:var(--card);color:var(--t2)}
+.sb-btn.act{background:var(--acc-d);color:var(--acc);border:1px solid rgba(31,111,235,.18)}
+.sb-ico{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.sb-badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:99px;font-family:var(--fnt)}
+.sb-badge.o{background:var(--org)}
+.sb-foot{padding:12px;border-top:1px solid var(--bdr)}
+.sb-user{display:flex;align-items:center;gap:10px}
+.sb-av{width:32px;height:32px;background:linear-gradient(135deg,var(--acc),#1558c0);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fnt);font-weight:700;color:#fff;font-size:12px;flex-shrink:0}
+.sb-uname{font-size:12px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.sb-urole{font-size:10px;color:var(--t3)}
+.sb-logout{margin-left:auto;background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;padding:4px;border-radius:4px;transition:color .15s;flex-shrink:0}
+.sb-logout:hover{color:var(--red)}
+
+/* main */
+.main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:rgba(8,15,24,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.tb-title{font-family:var(--fnt);font-size:19px;font-weight:700;color:var(--t1)}
+.tb-sub{font-size:10px;color:var(--t3);margin-top:1px}
+.tb-right{display:flex;align-items:center;gap:8px}
+.tb-chip{background:var(--acc-d);border:1px solid rgba(31,111,235,.3);color:var(--acc);padding:5px 12px;border-radius:99px;font-size:10px;font-weight:700;font-family:var(--fnt)}
+.tb-chip.r{background:var(--red-d);border-color:rgba(214,48,39,.3);color:var(--red)}
+.tb-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--bdrhi);background:transparent;color:var(--t2);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
+.tb-btn:hover{background:var(--card);color:var(--t1)}
+.tb-btn.p{background:linear-gradient(135deg,#1f6feb,#1558c0);border:none;color:#fff}
+.tb-btn.p:hover{box-shadow:0 4px 14px rgba(31,111,235,.4)}
+
+.content{padding:20px 24px;flex:1}
+
+/* real-time indicator */
+.rt-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(45,188,110,.08);border:1px solid rgba(45,188,110,.2);border-radius:8px;margin-bottom:16px;font-size:11px;color:var(--grn);animation:fadein .3s}
+.rt-dot{width:6px;height:6px;border-radius:50%;background:var(--grn);animation:blink 1.5s infinite}
+@keyframes fadein{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── DASHBOARD ────────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;position:relative;overflow:hidden;transition:all .2s;cursor:default}
+.kpi:hover{border-color:var(--bdrhi);transform:translateY(-2px)}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--kc,var(--acc))}
+.kpi-em{font-size:22px;margin-bottom:8px}
+.kpi-val{font-family:var(--fnt);font-size:38px;font-weight:700;color:var(--t1);line-height:1;transition:all .3s}
+.kpi-lbl{font-size:10px;color:var(--t3);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.kpi.g{--kc:var(--grn)}.kpi.r{--kc:var(--red)}.kpi.o{--kc:var(--org)}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:18px}
+.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.ct{font-family:var(--fnt);font-size:14px;font-weight:700;color:var(--t1);letter-spacing:.2px}
+.cbadge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:5px;font-family:var(--fnt)}
+.cb-g{background:var(--grn-d);color:var(--grn);border:1px solid rgba(45,188,110,.25)}
+.cb-b{background:var(--acc-d);color:var(--acc);border:1px solid rgba(31,111,235,.25)}
+.cb-r{background:var(--red-d);color:var(--red);border:1px solid rgba(214,48,39,.25)}
+.cb-o{background:var(--org-d);color:var(--org);border:1px solid rgba(232,101,26,.25)}
+
+/* adherence */
+.adh-num{font-family:var(--fnt);font-size:36px;font-weight:700;transition:all .3s}
+.adh-bar-bg{background:var(--bg);border-radius:99px;height:6px;margin:10px 0 5px;overflow:hidden}
+.adh-fill{height:100%;border-radius:99px;transition:width .8s ease}
+.adh-meta{font-size:11px;color:var(--t3)}
+.adh-sys-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}
+.adh-sys{background:var(--bg);border:1px solid var(--bdr);border-radius:7px;padding:8px 10px}
+.adh-sys-top{display:flex;justify-content:space-between;margin-bottom:4px}
+.adh-sys-code{font-family:var(--fnt);font-size:12px;font-weight:700;color:var(--t2)}
+.adh-sys-pct{font-size:10px;font-weight:700}
+.adh-mini-bg{background:var(--card);border-radius:99px;height:3px;overflow:hidden}
+.adh-mini-fill{height:100%;border-radius:99px;transition:width .8s ease}
+
+/* sys grid */
+.sys-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.sys-card{background:var(--card2);border:1px solid var(--bdr);border-radius:9px;padding:12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:11px}
+.sys-card:hover{border-color:var(--acc);transform:translateX(2px)}
+.sys-ic{width:38px;height:38px;background:var(--bg);border:1px solid var(--bdr);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.sys-code{font-family:var(--fnt);font-size:14px;font-weight:700;color:var(--acc)}
+.sys-name{font-size:10px;color:var(--t3);margin-top:2px;line-height:1.3}
+.sys-pill{margin-top:4px;display:inline-block;font-size:9px;font-weight:700;background:var(--red);color:#fff;padding:2px 6px;border-radius:4px;font-family:var(--fnt)}
+
+/* req list */
+.req-list{display:flex;flex-direction:column;gap:6px}
+.req-row{background:var(--card2);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .12s;border-left:3px solid var(--acc)}
+.req-row:hover{border-color:var(--bdrhi);background:var(--card3)}
+.req-row.done{border-left-color:var(--grn)}
+.req-row.late{border-left-color:var(--red)}
+.req-row.new-flash{animation:flash .6s ease}
+@keyframes flash{0%,100%{background:var(--card2)}50%{background:rgba(31,111,235,.12)}}
+.req-id{font-family:var(--fnt);font-size:11px;font-weight:700;color:var(--acc);min-width:90px;flex-shrink:0}
+.req-info{flex:1;min-width:0}
+.req-type{font-size:12px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.req-sys{font-size:10px;color:var(--t3);margin-top:1px}
+.req-date{font-size:10px;color:var(--t3);text-align:right;flex-shrink:0;white-space:nowrap}
+.spill{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:var(--fnt);flex-shrink:0}
+.sp-o{background:var(--acc-d);color:var(--acc)}
+.sp-d{background:var(--grn-d);color:var(--grn)}
+.sp-l{background:var(--red-d);color:var(--red)}
+
+/* alert */
+.alert-bar{background:var(--red-d);border:1px solid rgba(214,48,39,.3);border-radius:8px;padding:9px 12px;margin-bottom:14px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--t2)}
+.alert-bar strong{color:var(--red)}
+
+/* ─── FORMS / NAVIGATION ───────────────────────────── */
+.page-hdr{margin-bottom:18px}
+.page-title{font-family:var(--fnt);font-size:22px;font-weight:700;color:var(--t1)}
+.page-sub{font-size:11px;color:var(--t3);margin-top:3px}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t3);margin-bottom:14px;flex-wrap:wrap}
+.breadcrumb span{cursor:pointer;color:var(--acc)}
+.breadcrumb span:hover{text-decoration:underline}
+
+.sys-sel-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sys-sel-card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);padding:20px;cursor:pointer;transition:all .18s;text-align:center}
+.sys-sel-card:hover{border-color:var(--acc);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.sys-sel-icon{font-size:34px;margin-bottom:10px;display:block}
+.sys-sel-code{font-family:var(--fnt);font-size:18px;font-weight:700;color:var(--acc)}
+.sys-sel-name{font-size:10px;color:var(--t3);margin-top:4px;line-height:1.4}
+
+.opt-list{display:flex;flex-direction:column;gap:7px}
+.opt-item{background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all .15s}
+.opt-item:hover{border-color:var(--acc);background:var(--card2)}
+.opt-ic{width:34px;height:34px;background:var(--acc-d);border:1px solid rgba(31,111,235,.2);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--fnt);font-weight:700;font-size:14px;color:var(--acc);flex-shrink:0}
+.opt-txt h3{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:1px}
+.opt-txt p{font-size:10px;color:var(--t3)}
+
+.form-wrap{max-width:600px}
+.form-chip{display:inline-flex;align-items:center;background:var(--acc-d);border:1px solid rgba(31,111,235,.3);color:var(--acc);padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;font-family:var(--fnt);margin-bottom:10px}
+.form-title{font-family:var(--fnt);font-size:20px;font-weight:700;color:var(--t1);margin-bottom:16px}
+.form-fields{display:flex;flex-direction:column;gap:12px}
+.rg,.cbg{display:flex;flex-direction:column;gap:5px}
+.ri,.cbi{background:var(--card2);border:1px solid var(--bdr);border-radius:8px;padding:9px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .15s}
+.ri:hover,.cbi:hover{border-color:var(--bdrhi)}
+.ri.sel,.cbi.sel{border-color:var(--acc);background:var(--acc-d)}
+.rdot{width:16px;height:16px;border-radius:50%;border:2px solid var(--bdrhi);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.ri.sel .rdot{border-color:var(--acc)}
+.rdot-in{width:7px;height:7px;background:var(--acc);border-radius:50%;display:none}
+.ri.sel .rdot-in{display:block}
+.cbbox{width:16px;height:16px;border-radius:4px;border:2px solid var(--bdrhi);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:transparent}
+.cbi.sel .cbbox{border-color:var(--acc);background:var(--acc);color:#fff}
+.rt{font-size:12px;color:var(--t1);line-height:1.3}
+.submit-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.btn-sub{padding:12px 24px;border:none;border-radius:8px;background:linear-gradient(135deg,#1f6feb,#1558c0);color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-sub:hover{box-shadow:0 4px 16px rgba(31,111,235,.35);transform:translateY(-1px)}
+.btn-sub:disabled{opacity:.5;cursor:default;transform:none}
+.btn-can{padding:12px 18px;border:1px solid var(--bdrhi);border-radius:8px;background:transparent;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-can:hover{background:var(--card2)}
+
+/* detail */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
+.det-lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
+.det-val{font-size:12px;font-weight:600;color:var(--t1)}
+.field-row{padding:9px 0;border-bottom:1px solid var(--bdr)}
+.field-row:last-child{border-bottom:none}
+.fkey{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
+.fval{font-size:12px;color:var(--t1);line-height:1.4}
+.divider{height:1px;background:var(--bdr);margin:12px 0}
+.det-id{font-family:var(--fnt);font-size:22px;font-weight:700;color:var(--acc)}
+.chip{display:inline-block;padding:3px 9px;border-radius:5px;font-size:10px;font-weight:700;font-family:var(--fnt)}
+.chip-b{background:var(--acc-d);color:var(--acc);border:1px solid rgba(31,111,235,.3)}
+.chip-g{background:var(--grn-d);color:var(--grn);border:1px solid rgba(45,188,110,.3)}
+.chip-r{background:var(--red-d);color:var(--red);border:1px solid rgba(214,48,39,.3)}
+.row3{display:grid;grid-template-columns:1fr 1.2fr;gap:14px;margin-bottom:14px}
+
+/* list */
+.list-bar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.fpills{display:flex;gap:5px;flex:1;flex-wrap:wrap}
+.fpill{padding:4px 12px;border-radius:99px;border:1px solid var(--bdr);background:transparent;color:var(--t3);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--fnt);transition:all .12s}
+.fpill.act{background:var(--acc);border-color:var(--acc);color:#fff}
+.tab-bar{display:flex;gap:3px;background:var(--card2);border:1px solid var(--bdr);border-radius:7px;padding:3px;margin-bottom:12px}
+.tab-btn{flex:1;padding:6px;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;background:transparent;color:var(--t3);font-family:var(--fnt);transition:all .12s}
+.tab-btn.act{background:var(--acc);color:#fff}
+
+/* admin */
+.admin-tabs{display:flex;gap:0;background:var(--card2);border:1px solid var(--bdr);border-radius:7px;padding:3px;margin-bottom:16px}
+.admin-tab{flex:1;padding:7px;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;font-family:var(--fnt);background:transparent;color:var(--t3);transition:all .12s}
+.admin-tab.act{background:var(--acc);color:#fff}
+.user-tbl{width:100%;border-collapse:collapse}
+.user-tbl th{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;padding:7px 10px;text-align:left;border-bottom:1px solid var(--bdr)}
+.user-tbl td{padding:10px 10px;border-bottom:1px solid var(--bdr);font-size:12px;color:var(--t2)}
+.user-tbl tr:last-child td{border-bottom:none}
+.user-tbl tr:hover td{background:rgba(255,255,255,.02)}
+.role-tag{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:var(--fnt);display:inline-block}
+.rt-admin{background:var(--ylw-d);color:var(--ylw);border:1px solid rgba(245,197,24,.25)}
+.rt-user{background:var(--acc-d);color:var(--acc);border:1px solid rgba(31,111,235,.25)}
+.st-tag{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:var(--fnt);display:inline-block}
+.st-pend{background:var(--ylw-d);color:var(--ylw);border:1px solid rgba(245,197,24,.25)}
+.st-appr{background:var(--grn-d);color:var(--grn);border:1px solid rgba(45,188,110,.25)}
+.st-rej{background:var(--red-d);color:var(--red);border:1px solid rgba(214,48,39,.25)}
+.act-btns{display:flex;gap:5px;flex-wrap:wrap}
+.act-btn{padding:4px 10px;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid;transition:all .12s;font-family:'Barlow',sans-serif}
+.ab-appr{background:var(--grn-d);color:var(--grn);border-color:rgba(45,188,110,.3)}
+.ab-appr:hover{background:var(--grn);color:#fff}
+.ab-rej{background:var(--red-d);color:var(--red);border-color:rgba(214,48,39,.3)}
+.ab-rej:hover{background:var(--red);color:#fff}
+.ab-rev{background:var(--org-d);color:var(--org);border-color:rgba(232,101,26,.3)}
+.ab-rev:hover{background:var(--org);color:#fff}
+.pend-cnt{display:inline-flex;align-items:center;justify-content:center;background:var(--red);color:#fff;font-size:9px;font-weight:700;width:16px;height:16px;border-radius:50%;margin-left:5px;font-family:var(--fnt)}
+
+/* success */
+.suc{text-align:center;padding:60px 20px;animation:fadein .4s}
+.suc-icon{font-size:60px;margin-bottom:18px;animation:pop .4s cubic-bezier(.17,.67,.22,1.4)}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+.suc-title{font-family:var(--fnt);font-size:26px;font-weight:700;color:var(--t1);margin-bottom:6px}
+.suc-sub{font-size:12px;color:var(--t3);margin-bottom:16px}
+.suc-id{display:inline-block;background:var(--card);border:1px solid var(--acc);border-radius:8px;padding:10px 28px;font-family:var(--fnt);font-size:20px;font-weight:700;color:var(--acc);letter-spacing:1px;margin-bottom:22px}
+.suc-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+
+/* empty */
+.empty{text-align:center;padding:48px 20px;color:var(--t3)}
+.empty-ico{font-size:44px;margin-bottom:10px;opacity:.4}
+
+/* PWA banner */
+#pwa-banner{
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;
+  background:#0d1b2a;border-top:1px solid var(--bdr);
+  padding:12px 16px;align-items:center;gap:10px;
+  box-shadow:0 -8px 24px rgba(0,0,0,.5)
+}
+.pwa-ic{width:38px;height:38px;background:var(--red);border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:var(--fnt);font-weight:700;color:#fff;font-size:14px;flex-shrink:0}
+.pwa-txt h4{font-family:var(--fnt);font-weight:700;color:var(--t1);font-size:13px}
+.pwa-txt p{font-size:10px;color:var(--t3);margin-top:1px}
+
+/* toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--card3);border:1px solid var(--acc);color:var(--t1);padding:11px 18px;border-radius:9px;font-size:12px;font-weight:600;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:fadein .2s;max-width:300px;pointer-events:none}
+.toast.err{border-color:var(--red)}
+
+/* scrollbar */
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--bdrhi);border-radius:2px}
+
+/* mobile */
+@media(max-width:820px){
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .row2,.row3,.sys-sel-grid{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .main{margin-left:0}
+  .detail-grid{grid-template-columns:1fr 1fr}
+  .user-tbl{display:block;overflow-x:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- ─── SETUP SCREEN ────────────────────────────────── -->
+<div id="setup-screen" style="display:none">
+  <div class="setup-card">
+    <div class="setup-logo">
+      <div class="setup-logo-icon">AM</div>
+      <div><h1>SGA</h1><p>Configuração Inicial</p></div>
+    </div>
+    <div class="setup-title">Conectar ao Firebase</div>
+    <div class="setup-sub">O SGA usa Firebase para sincronização em tempo real entre todos os dispositivos. Configure uma vez e todos os dados ficam na nuvem.</div>
+    <div class="setup-steps">
+      <div class="setup-step"><strong>1. Criar projeto Firebase (gratuito)</strong>Acesse <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → "Adicionar projeto" → desative Google Analytics → Criar</div>
+      <div class="setup-step"><strong>2. Ativar Realtime Database</strong>No menu lateral: Build → Realtime Database → Criar banco → Escolha região → Modo de teste (30 dias)</div>
+      <div class="setup-step"><strong>3. Registrar o app Web</strong>Configurações do projeto (⚙️) → Adicionar app → Web (&lt;/&gt;) → apelido "SGA" → Registrar → copie o objeto <code>firebaseConfig</code></div>
+    </div>
+    <div class="setup-err" id="setup-err"></div>
+    <div class="fg"><label class="fl">apiKey</label><input class="fi" id="cfg-apiKey" placeholder="AIzaSy..."></div>
+    <div class="fg"><label class="fl">authDomain</label><input class="fi" id="cfg-authDomain" placeholder="meu-projeto.firebaseapp.com"></div>
+    <div class="fg"><label class="fl">databaseURL</label><input class="fi" id="cfg-databaseURL" placeholder="https://meu-projeto-default-rtdb.firebaseio.com"></div>
+    <div class="fg"><label class="fl">projectId</label><input class="fi" id="cfg-projectId" placeholder="meu-projeto"></div>
+    <div class="fg"><label class="fl">storageBucket</label><input class="fi" id="cfg-storageBucket" placeholder="meu-projeto.appspot.com"></div>
+    <div class="fg"><label class="fl">messagingSenderId</label><input class="fi" id="cfg-messagingSenderId" placeholder="123456789"></div>
+    <div class="fg"><label class="fl">appId</label><input class="fi" id="cfg-appId" placeholder="1:123:web:abc..."></div>
+    <button class="btn-full" id="setup-btn" onclick="doSetup()">✓ Conectar e Iniciar</button>
+    <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--t3)">Salvo localmente. Você só configura uma vez por dispositivo.</div>
+  </div>
+</div>
+
+<!-- ─── AUTH SCREEN ─────────────────────────────────── -->
+<div id="auth-screen">
+  <div class="auth-wrap">
+
+    <!-- LOGIN -->
+    <div id="view-login" class="auth-card" style="display:none">
+      <div class="auth-logo">
+        <div class="auth-logo-ic">AM</div>
+        <div><h1>SGA</h1><p>Mina do Andrade · ArcelorMittal</p></div>
+      </div>
+      <div class="auth-title">Entrar no Sistema</div>
+      <div class="auth-sub">Use suas credenciais de acesso</div>
+      <div id="login-err" class="auth-err"></div>
+      <div class="fg"><label class="fl">E-mail</label><input class="fi" id="l-email" type="email" placeholder="usuario@arcelormittal.com.br"></div>
+      <div class="fg"><label class="fl">Senha</label><input class="fi" id="l-pass" type="password" placeholder="••••••••"></div>
+      <button class="btn-full" id="login-btn" onclick="doLogin()">Entrar →</button>
+      <div class="auth-link">Sem acesso? <a onclick="showView('register')">Solicitar Acesso</a></div>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="view-register" class="auth-card" style="display:none;overflow-y:auto;max-height:90vh;justify-content:flex-start">
+      <div class="auth-logo">
+        <div class="auth-logo-ic">AM</div>
+        <div><h1>SGA</h1><p>Solicitação de Acesso</p></div>
+      </div>
+      <div class="auth-title">Solicitar Acesso</div>
+      <div class="auth-sub">O supervisor analisará sua solicitação</div>
+      <div id="reg-err" class="auth-err"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label class="fl">Nome Completo</label><input class="fi" id="r-nome" placeholder="Seu nome"></div>
+        <div class="fg"><label class="fl">PN / Matrícula</label><input class="fi" id="r-pn" placeholder="A123456"></div>
+      </div>
+      <div class="fg"><label class="fl">E-mail</label><input class="fi" id="r-email" type="email" placeholder="usuario@arcelormittal.com.br"></div>
+      <div class="fg"><label class="fl">Cargo</label>
+        <select class="fi" id="r-cargo">
+          <option value="">Selecione...</option>
+          <option>Técnico de Automação</option><option>Técnico de Instrumentação</option>
+          <option>Técnico de Redes</option><option>Eletricista</option>
+          <option>Operador de Processo</option><option>Engenheiro de Automação</option>
+          <option>Supervisor de Operação</option><option>Outro</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Senha</label><input class="fi" id="r-pass" type="password" placeholder="Mínimo 6 caracteres"></div>
+      <div class="fg"><label class="fl">Justificativa</label><textarea class="fta" id="r-just" placeholder="Por que precisa acessar o SGA?"></textarea></div>
+      <button class="btn-full" id="reg-btn" onclick="doRegister()">Enviar Solicitação →</button>
+      <button class="btn-ghost" onclick="showView('login')">← Voltar ao Login</button>
+    </div>
+
+    <!-- PENDING -->
+    <div id="view-pending" class="pending-card" style="display:none">
+      <span class="pending-icon">⏳</span>
+      <div class="pending-title">Aguardando Aprovação</div>
+      <div class="pending-sub">Solicitação registrada. O Supervisor de Automação será notificado.</div>
+      <div class="pending-steps">
+        <div class="pstep"><div class="psdot ps-done">✓</div><span>Solicitação enviada</span></div>
+        <div class="pstep"><div class="psdot ps-wait">⋯</div><span>Análise pelo Supervisor</span></div>
+        <div class="pstep"><div class="psdot ps-todo">3</div><span>Acesso liberado</span></div>
+      </div>
+      <button class="btn-full" onclick="checkStatus()" style="margin-bottom:8px">🔄 Verificar Status</button>
+      <button class="btn-ghost" onclick="doLogout()">← Sair</button>
+    </div>
+
+    <!-- REJECTED -->
+    <div id="view-rejected" class="pending-card rejected-card" style="display:none">
+      <span class="pending-icon">❌</span>
+      <div class="pending-title">Acesso Não Aprovado</div>
+      <div class="pending-sub">Entre em contato com o Supervisor de Automação.</div>
+      <button class="btn-ghost" onclick="doLogout()">← Voltar ao Login</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── APP SHELL ────────────────────────────────────── -->
+<div id="app-shell">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div class="sb-ic">AM</div>
+      <div><div class="sb-title">SGA</div><div class="sb-sub">Mina do Andrade</div></div>
+      <div class="sb-online" id="sb-online" title="Sincronizado"></div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-sec">Principal</div>
+      <button class="sb-btn" id="nav-home" onclick="go('home')"><span class="sb-ico">🏠</span><span>Dashboard</span></button>
+      <button class="sb-btn" id="nav-list" onclick="go('list')"><span class="sb-ico">📋</span><span>Solicitações</span><span class="sb-badge" id="sb-open" style="display:none">0</span></button>
+      <div class="sb-sec">Sistemas</div>
+      <button class="sb-btn" id="nav-SGF" onclick="goSys('SGF')"><span class="sb-ico">⚙️</span><span>SGF – Forces</span></button>
+      <button class="sb-btn" id="nav-SAL" onclick="goSys('SAL')"><span class="sb-ico">🔧</span><span>SAL – Lógicas</span></button>
+      <button class="sb-btn" id="nav-SGP" onclick="goSys('SGP')"><span class="sb-ico">📊</span><span>SGP – PIMS</span></button>
+      <button class="sb-btn" id="nav-SCA" onclick="goSys('SCA')"><span class="sb-ico">🔑</span><span>SCA – Acesso</span></button>
+      <div id="admin-sec" style="display:none">
+        <div class="sb-sec">Administração</div>
+        <button class="sb-btn" id="nav-admin" onclick="go('admin')"><span class="sb-ico">👤</span><span>Usuários</span><span class="sb-badge o" id="sb-pend" style="display:none">0</span></button>
+      </div>
+    </nav>
+    <div class="sb-foot">
+      <div class="sb-user">
+        <div class="sb-av" id="sb-av">?</div>
+        <div style="flex:1;min-width:0"><div class="sb-uname" id="sb-uname">–</div><div class="sb-urole" id="sb-urole">–</div></div>
+        <button class="sb-logout" onclick="doLogout()" title="Sair">⏏</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div><div class="tb-title" id="tb-title">Dashboard</div><div class="tb-sub">ArcelorMittal Brasil – Mina do Andrade</div></div>
+      <div class="tb-right" id="tb-right"></div>
+    </div>
+    <div class="content" id="main-content"></div>
+  </main>
+</div>
+
+<!-- PWA Banner -->
+<div id="pwa-banner">
+  <div class="pwa-ic">AM</div>
+  <div class="pwa-txt" style="flex:1"><h4>Instalar SGA</h4><p>Adicionar à tela inicial</p></div>
+  <button onclick="installPWA()" class="tb-btn p" style="flex-shrink:0">Instalar</button>
+  <button onclick="document.getElementById('pwa-banner').style.display='none'" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0">×</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  FIREBASE CONFIG MANAGER
+// ════════════════════════════════════════════════
+var _db = null, _auth = null, _fbCfg = null;
+
+function loadConfig() {
+  var raw = localStorage.getItem('sga_fb_cfg');
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch(e) { return null; }
+}
+function saveConfig(cfg) {
+  localStorage.setItem('sga_fb_cfg', JSON.stringify(cfg));
+}
+
+function initFirebase(cfg) {
+  try {
+    var app;
+    if (!firebase.apps.length) {
+      app = firebase.initializeApp(cfg);
+    } else {
+      app = firebase.app();
+    }
+    _db   = firebase.database();
+    _auth = firebase.auth();
+    _fbCfg = cfg;
+    return true;
+  } catch(e) {
+    console.error('Firebase init error:', e);
+    return false;
+  }
+}
+
+function doSetup() {
+  var btn = document.getElementById('setup-btn');
+  var errEl = document.getElementById('setup-err');
+  errEl.className = 'setup-err';
+
+  var cfg = {
+    apiKey:            document.getElementById('cfg-apiKey').value.trim(),
+    authDomain:        document.getElementById('cfg-authDomain').value.trim(),
+    databaseURL:       document.getElementById('cfg-databaseURL').value.trim(),
+    projectId:         document.getElementById('cfg-projectId').value.trim(),
+    storageBucket:     document.getElementById('cfg-storageBucket').value.trim(),
+    messagingSenderId: document.getElementById('cfg-messagingSenderId').value.trim(),
+    appId:             document.getElementById('cfg-appId').value.trim()
+  };
+
+  var missing = Object.entries(cfg).filter(([k,v]) => !v).map(([k]) => k);
+  if (missing.length) {
+    errEl.textContent = 'Preencha todos os campos: ' + missing.join(', ');
+    errEl.className = 'setup-err show';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Conectando...';
+
+  if (!initFirebase(cfg)) {
+    errEl.textContent = 'Erro ao inicializar Firebase. Verifique os dados.';
+    errEl.className = 'setup-err show';
+    btn.disabled = false;
+    btn.textContent = '✓ Conectar e Iniciar';
+    return;
+  }
+
+  // Test connection by writing a test value
+  _db.ref('_ping').set(Date.now())
+    .then(() => {
+      saveConfig(cfg);
+      seedAdmin();
+      document.getElementById('setup-screen').style.display = 'none';
+      document.getElementById('auth-screen').style.display = 'flex';
+      showView('login');
+      startRealtime();
+    })
+    .catch(err => {
+      errEl.textContent = 'Não foi possível conectar: ' + err.message;
+      errEl.className = 'setup-err show';
+      btn.disabled = false;
+      btn.textContent = '✓ Conectar e Iniciar';
+    });
+}
+
+// ════════════════════════════════════════════════
+//  DATA CONSTANTS
+// ════════════════════════════════════════════════
+var PLANTS  = ['IBMAN','ICMAN','HOMOGENEIZAÇÃO'];
+var SENSORS = ['Chave de Desalinhamento','Chave de Emergência de Corda','Botão de Emergência','Sensor de Entupimento de Chute','Sensor de Subvelocidade','Chave de Rasgo','Transmissor de Temperatura','Transmissor de Vazão','Transmissor de Nível','Transmissor de Pressão','Chave de posição aberto – ZSH','Chave de posição fechada – ZSL','Chave Vibratória','Outros'];
+var WHY     = ['Falta de Material','Risco de parada da planta','Operação não disponibilizou o equipamento','Necessidade de apoio técnico','Outro Motivo'];
+var TEAM    = ['Thalles Petter','Fernando Francimar','Reginaldo Neves','Julio Correia','Marcelo Mendes'];
+var RISKS   = ['ALTO – Parada completa da Planta','MÉDIO – Parada de uma linha ou equipamento','BAIXO – Sem risco ao processo produtivo'];
+var ROOMS   = ['Estação de Engenharia','SE183AN01 – Sala do PLC','SE241AN01 – Sala do PLC'];
+var PFEED   = ['Solicitação de Acesso','Solicitação de Nova Variável','Solicitação de Novo Cálculo','Solicitação de Nova Tela','Solicitação de Correção'];
+var CORR    = ['Variável de processo','Cálculo solicitado','Adequação de Tela'];
+var VIS     = ['Exclusiva','Pública','Público específico'];
+var ACCS    = ['Técnico de Sala de Controle','Eletricistas','Líderes Operacionais','Engenharia – Automação'];
+var ACCE    = ['Eletricistas','Técnicos de Elétrica','Engenharia – Automação'];
+var DELT    = ['Acesso ao Supervisório','Acesso à Estação de Engenharia','Acesso às salas de Automação'];
+var SYS = {
+  SGF:{name:'Gerenciamento de Forces',icon:'⚙️'},
+  SAL:{name:'Alteração de Lógicas',icon:'🔧'},
+  SGP:{name:'Gerenciamento do PIMS',icon:'📊'},
+  SCA:{name:'Controle de Acesso',icon:'🔑'}
+};
+var SYS_OPTS = {
+  SGF:[{c:'A',n:'Novo Force',d:'Registrar force em equipamento com falha'},{c:'B',n:'Retirada de Force',d:'Retirar force com OS vinculada'}],
+  SAL:[{c:'C',n:'Nova Solicitação',d:'Solicitar alteração de lógica'},{c:'D',n:'Aprovação / Reprovação',d:'Aprovar ou reprovar solicitação'},{c:'E',n:'Previsão de Conclusão',d:'Informar data e nota SAP'},{c:'F',n:'Feedback Final',d:'Registrar conclusão'}],
+  SGP:[{c:'G',n:'Solicitação de Acesso',d:'Acesso ao PIMS'},{c:'H',n:'Nova Variável',d:'Historiar variável'},{c:'I',n:'Novo Cálculo',d:'Cálculo no PIMS'},{c:'J',n:'Nova Tela',d:'Criação de tela'},{c:'K',n:'Correção',d:'Corrigir item existente'},{c:'L',n:'Feedback Automação',d:'Retornar status'}],
+  SCA:[{c:'M',n:'Acesso ao Supervisório',d:'Novo acesso ao supervisório'},{c:'N',n:'Estações de Engenharia',d:'Acesso às estações'},{c:'O',n:'Salas de Automação',d:'Acesso físico às salas'},{c:'P',n:'Exclusão de Usuário',d:'Inativar acesso'}]
+};
+
+function getFields(sys,opt){
+  if(sys==='SGF'&&opt==='A') return [{id:'planta',lbl:'Planta',type:'radio',opts:PLANTS,req:true},{id:'equip',lbl:'Equipamento',type:'text',ph:'Ex: TC-001',req:true},{id:'sensor',lbl:'Tipo de Sensor',type:'radio',opts:SENSORS,req:true},{id:'motivo',lbl:'Motivo do não reparo',type:'radio',opts:WHY,req:true},{id:'pessoa',lbl:'Pessoa Informada',type:'radio',opts:TEAM,req:true},{id:'descFalha',lbl:'Descrição da Falha',type:'textarea',ph:'Descreva a falha...',req:true},{id:'prevDate',lbl:'Previsão de Atendimento',type:'date',req:true}];
+  if(sys==='SGF'&&opt==='B') return [{id:'forceId',lbl:'ID do Force',type:'text',ph:'SGF-2504001',req:true},{id:'os',lbl:'Ordem de Serviço',type:'text',ph:'1234567',req:true},{id:'nome',lbl:'Seu Nome',type:'text',ph:'Nome completo',req:true}];
+  if(sys==='SAL'&&opt==='C') return [{id:'planta',lbl:'Planta',type:'radio',opts:PLANTS,req:true},{id:'equip',lbl:'Equipamento ou Processo',type:'text',ph:'Ex: TC-001',req:true},{id:'desc',lbl:'Descrição da Solicitação',type:'textarea',ph:'Descreva...',req:true},{id:'beneficio',lbl:'Benefício da Melhoria',type:'textarea',ph:'Qual benefício?',req:true},{id:'risco',lbl:'Risco da Alteração',type:'radio',opts:RISKS,req:true},{id:'prevDate',lbl:'Previsão',type:'date',req:true}];
+  if(sys==='SAL'&&opt==='D') return [{id:'solId',lbl:'ID da Solicitação',type:'text',ph:'SAL-2504001',req:true},{id:'aprovado',lbl:'Aprovada?',type:'radio',opts:['Sim','Não'],req:true},{id:'coment',lbl:'Comentários',type:'textarea',ph:'Comentários...',req:false}];
+  if(sys==='SAL'&&opt==='E') return [{id:'solId',lbl:'ID da Solicitação',type:'text',ph:'SAL-2504001',req:true},{id:'notaSAP',lbl:'Nota do SAP',type:'text',ph:'12345678',req:true},{id:'prevDate',lbl:'Data Prevista',type:'date',req:true}];
+  if(sys==='SAL'&&opt==='F') return [{id:'solId',lbl:'ID da Solicitação',type:'text',ph:'SAL-2504001',req:true},{id:'conc',lbl:'Atividade Concluída?',type:'radio',opts:['Sim','Não','Não é possível'],req:true},{id:'coment',lbl:'Comentários',type:'textarea',ph:'Resultado...',req:false}];
+  if(sys==='SGP'&&opt==='G') return [{id:'nome',lbl:'Seu Nome',type:'text',ph:'Nome completo',req:true},{id:'email',lbl:'Seu E-mail',type:'email',ph:'usuario@arcelormittal.com.br',req:true},{id:'emailG',lbl:'E-mail do Gestor',type:'email',ph:'gestor@arcelormittal.com.br',req:true},{id:'motivo',lbl:'Motivo',type:'textarea',ph:'Por que precisa?',req:true},{id:'prevDate',lbl:'Previsão',type:'date',req:true}];
+  if(sys==='SGP'&&opt==='H') return [{id:'nome',lbl:'Seu Nome',type:'text',ph:'Nome completo',req:true},{id:'email',lbl:'E-mail',type:'email',ph:'usuario@arcelormittal.com.br',req:true},{id:'variavel',lbl:'Variável a Historiar',type:'textarea',ph:'Informe a variável...',req:true},{id:'prevDate',lbl:'Previsão',type:'date',req:true}];
+  if(sys==='SGP'&&opt==='I') return [{id:'nome',lbl:'Seu Nome',type:'text',ph:'Nome completo',req:true},{id:'email',lbl:'E-mail',type:'email',ph:'usuario@arcelormittal.com.br',req:true},{id:'varBase',lbl:'Variáveis Base',type:'textarea',ph:'Liste as variáveis...',req:true},{id:'calculo',lbl:'Descrição do Cálculo',type:'textarea',ph:'Descreva...',req:true},{id:'prevDate',lbl:'Previsão',type:'date',req:true}];
+  if(sys==='SGP'&&opt==='J') return [{id:'nome',lbl:'Seu Nome',type:'text',ph:'Nome completo',req:true},{id:'email',lbl:'E-mail',type:'email',ph:'usuario@arcelormittal.com.br',req:true},{id:'infoTela',lbl:'Informações da Tela',type:'textarea',ph:'Descreva...',req:true},{id:'visib',lbl:'Visibilidade',type:'radio',opts:VIS,req:true},{id:'prevDate',lbl:'Previsão',type:'date',req:true}];
+  if(sys==='SGP'&&opt==='K') return [{id:'tipoCorr',lbl:'O que corrigir?',type:'radio',opts:CORR,req:true},{id:'motivo',lbl:'Motivo',type:'textarea',ph:'Descreva...',req:true},{id:'nome',lbl:'Seu Nome',type:'text',ph:'Nome completo',req:true},{id:'email',lbl:'E-mail',type:'email',ph:'usuario@arcelormittal.com.br',req:true},{id:'prevDate',lbl:'Previsão',type:'date',req:true}];
+  if(sys==='SGP'&&opt==='L') return [{id:'tipoRet',lbl:'Item de Retorno',type:'radio',opts:PFEED,req:true},{id:'nome',lbl:'Seu Nome',type:'text',ph:'Nome completo',req:true},{id:'notaServ',lbl:'Nota de Serviço',type:'text',ph:'12345678',req:true},{id:'prevDate',lbl:'Data Prevista',type:'date',req:true}];
+  if(sys==='SCA'&&opt==='M') return [{id:'nome',lbl:'Seu Nome',type:'text',ph:'Nome completo',req:true},{id:'pnUser',lbl:'PN do Novo Usuário',type:'text',ph:'A123456',req:true},{id:'nomeUser',lbl:'Nome do Novo Usuário',type:'text',ph:'Nome completo',req:true},{id:'emailUser',lbl:'E-mail do Novo Usuário',type:'email',ph:'usuario@arcelormittal.com.br',req:true},{id:'nivel',lbl:'Nível de Acesso',type:'radio',opts:ACCS,req:true},{id:'prevDate',lbl:'Previsão',type:'date',req:true}];
+  if(sys==='SCA'&&opt==='N') return [{id:'nome',lbl:'Seu Nome',type:'text',ph:'Nome completo',req:true},{id:'pnUser',lbl:'PN do Novo Usuário',type:'text',ph:'A123456',req:true},{id:'emailUser',lbl:'E-mail',type:'email',ph:'usuario@arcelormittal.com.br',req:true},{id:'nivel',lbl:'Nível de Acesso',type:'radio',opts:ACCE,req:true},{id:'prevDate',lbl:'Previsão',type:'date',req:true}];
+  if(sys==='SCA'&&opt==='O') return [{id:'pnSolic',lbl:'PN do Solicitante',type:'text',ph:'A123456',req:true},{id:'nomeUser',lbl:'Nome do Usuário',type:'text',ph:'Nome completo',req:true},{id:'salas',lbl:'Salas com Acesso',type:'checkbox',opts:ROOMS,req:true},{id:'motivo',lbl:'Motivo',type:'textarea',ph:'Descreva...',req:true},{id:'prevDate',lbl:'Previsão',type:'date',req:true}];
+  if(sys==='SCA'&&opt==='P') return [{id:'tipoExcl',lbl:'Tipo de Exclusão',type:'radio',opts:DELT,req:true},{id:'motivo',lbl:'Motivo',type:'textarea',ph:'Descreva...',req:true},{id:'pnUser',lbl:'PN do Usuário',type:'text',ph:'A123456',req:true},{id:'nomeUser',lbl:'Nome do Usuário',type:'text',ph:'Nome completo',req:true}];
+  return [];
+}
+
+// ════════════════════════════════════════════════
+//  APP STATE
+// ════════════════════════════════════════════════
+var S = {
+  page: 'home', sys: null, opt: null, formData: {},
+  detailId: null, listTab: 'open', listFilter: 'ALL',
+  user: null,
+  // live data from Firebase
+  reqs: [],
+  users: []
+};
+
+var _reqsRef   = null;
+var _usersRef  = null;
+var _knownReqs = new Set(); // track IDs we've seen to detect new ones
+
+// ════════════════════════════════════════════════
+//  REALTIME LISTENERS
+// ════════════════════════════════════════════════
+function startRealtime() {
+  if (!_db) return;
+
+  _reqsRef = _db.ref('sga/requests');
+  _reqsRef.on('value', snap => {
+    var data = snap.val() || {};
+    var newReqs = Object.values(data);
+    newReqs.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Detect newly added requests (flash animation)
+    var newIds = new Set(newReqs.map(r => r.id));
+    if (_knownReqs.size > 0) {
+      newReqs.forEach(r => {
+        if (!_knownReqs.has(r.id)) {
+          setTimeout(() => {
+            var el = document.querySelector('[data-rid="' + r.id + '"]');
+            if (el) el.classList.add('new-flash');
+          }, 100);
+          toast('📋 Nova solicitação: ' + r.id);
+        }
+      });
+    }
+    _knownReqs = newIds;
+    S.reqs = newReqs;
+
+    updateBadges();
+    if (S.page === 'home' || S.page === 'list') renderPage();
+    if (S.page === 'detail') renderPage();
+  });
+
+  _usersRef = _db.ref('sga/users');
+  _usersRef.on('value', snap => {
+    var data = snap.val() || {};
+    S.users = Object.values(data);
+    updateBadges();
+    if (S.page === 'admin') renderPage();
+    if (S.user) {
+      var fresh = S.users.find(u => u.id === S.user.id);
+      if (fresh && fresh.status !== S.user.status) {
+        S.user = fresh;
+        localStorage.setItem('sga_session', JSON.stringify(fresh));
+        if (fresh.status === 'approved') { bootApp(fresh); }
+        else if (fresh.status === 'rejected') { showView('rejected'); }
+      }
+    }
+  });
+
+  // Connection state indicator
+  _db.ref('.info/connected').on('value', snap => {
+    var dot = document.getElementById('sb-online');
+    if (dot) {
+      dot.style.background = snap.val() ? '#2dbc6e' : '#d63027';
+      dot.title = snap.val() ? 'Conectado – tempo real' : 'Desconectado';
+    }
+  });
+}
+
+// ════════════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════════════
+function seedAdmin() {
+  var ref = _db.ref('sga/users/admin-001');
+  ref.once('value').then(snap => {
+    if (!snap.exists()) {
+      ref.set({
+        id: 'admin-001', nome: 'Thalles Petter', pn: 'TP0001',
+        cargo: 'Supervisor de Automação',
+        email: 'thalles.batista@arcelormittal.com.br',
+        passHash: btoa('Admin@2025'), role: 'admin', status: 'approved',
+        createdAt: new Date().toISOString()
+      });
+    }
+  });
+}
+
+function showView(v) {
+  ['login','register','pending','rejected'].forEach(id => {
+    var el = document.getElementById('view-' + id);
+    if (el) el.style.display = 'none';
+  });
+  var el = document.getElementById('view-' + v);
+  if (el) el.style.display = '';
+}
+
+function doLogin() {
+  var email = document.getElementById('l-email').value.trim();
+  var pass  = document.getElementById('l-pass').value;
+  var errEl = document.getElementById('login-err');
+  errEl.className = 'auth-err';
+  if (!email || !pass) { errEl.textContent = 'Preencha e-mail e senha.'; errEl.className = 'auth-err show'; return; }
+
+  var btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Verificando...';
+
+  _db.ref('sga/users').orderByChild('email').equalTo(email).once('value')
+    .then(snap => {
+      var data = snap.val();
+      if (!data) throw new Error('Usuário não encontrado');
+      var user = Object.values(data)[0];
+      if (user.passHash !== btoa(pass)) throw new Error('Senha incorreta');
+
+      btn.disabled = false; btn.textContent = 'Entrar →';
+      localStorage.setItem('sga_session', JSON.stringify(user));
+      S.user = user;
+
+      if (user.status === 'pending')   { showView('pending'); return; }
+      if (user.status === 'rejected')  { showView('rejected'); return; }
+      bootApp(user);
+    })
+    .catch(err => {
+      errEl.textContent = err.message;
+      errEl.className = 'auth-err show';
+      btn.disabled = false; btn.textContent = 'Entrar →';
+    });
+}
+
+function doRegister() {
+  var nome   = document.getElementById('r-nome').value.trim();
+  var pn     = document.getElementById('r-pn').value.trim();
+  var email  = document.getElementById('r-email').value.trim();
+  var cargo  = document.getElementById('r-cargo').value;
+  var pass   = document.getElementById('r-pass').value;
+  var just   = document.getElementById('r-just').value.trim();
+  var errEl  = document.getElementById('reg-err');
+  errEl.className = 'auth-err';
+
+  if (!nome||!pn||!email||!cargo||!pass||!just) {
+    errEl.textContent = 'Preencha todos os campos.'; errEl.className = 'auth-err show'; return;
+  }
+  if (pass.length < 6) {
+    errEl.textContent = 'Senha mínimo 6 caracteres.'; errEl.className = 'auth-err show'; return;
+  }
+
+  var btn = document.getElementById('reg-btn');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+
+  _db.ref('sga/users').orderByChild('email').equalTo(email).once('value')
+    .then(snap => {
+      if (snap.exists()) throw new Error('E-mail já cadastrado.');
+      var id   = 'user-' + Date.now();
+      var user = { id, nome, pn, cargo, email, passHash: btoa(pass), role: 'user', status: 'pending', justificativa: just, createdAt: new Date().toISOString() };
+      return _db.ref('sga/users/' + id).set(user).then(() => user);
+    })
+    .then(user => {
+      S.user = user;
+      localStorage.setItem('sga_session', JSON.stringify(user));
+      btn.disabled = false; btn.textContent = 'Enviar Solicitação →';
+      showView('pending');
+      // Email admin via mailto fallback
+      notifyNewUser(user);
+    })
+    .catch(err => {
+      errEl.textContent = err.message; errEl.className = 'auth-err show';
+      btn.disabled = false; btn.textContent = 'Enviar Solicitação →';
+    });
+}
+
+function notifyNewUser(user) {
+  var subj = '[SGA] Nova solicitação de acesso – ' + user.nome;
+  var body = 'Nova solicitação de acesso ao SGA:\n\nNome: ' + user.nome + '\nPN: ' + user.pn + '\nCargo: ' + user.cargo + '\nE-mail: ' + user.email + '\nJustificativa: ' + user.justificativa + '\n\nAcesse o painel admin para aprovar ou rejeitar.\n\n— SGA · ArcelorMittal Brasil · Mina do Andrade';
+  window.open('mailto:thalles.batista@arcelormittal.com.br?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(body), '_blank');
+}
+
+function checkStatus() {
+  if (!S.user) return;
+  _db.ref('sga/users/' + S.user.id).once('value').then(snap => {
+    var u = snap.val();
+    if (!u) return;
+    S.user = u;
+    localStorage.setItem('sga_session', JSON.stringify(u));
+    if (u.status === 'approved') bootApp(u);
+    else if (u.status === 'rejected') showView('rejected');
+    else toast('⏳ Ainda em análise. Aguarde o supervisor.');
+  });
+}
+
+function doLogout() {
+  S.user = null;
+  localStorage.removeItem('sga_session');
+  if (_reqsRef)  { _reqsRef.off();  _reqsRef  = null; }
+  if (_usersRef) { _usersRef.off(); _usersRef = null; }
+  document.getElementById('app-shell').className = '';
+  document.getElementById('auth-screen').style.display = 'flex';
+  showView('login');
+}
+
+// ════════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════════
+function bootApp(user) {
+  S.user = user;
+  document.getElementById('auth-screen').style.display = 'none';
+  var shell = document.getElementById('app-shell');
+  shell.className = 'on';
+
+  var ini = user.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('sb-av').textContent    = ini;
+  document.getElementById('sb-uname').textContent = user.nome.split(' ').slice(0,2).join(' ');
+  document.getElementById('sb-urole').textContent = user.cargo || (user.role==='admin'?'Administrador':'Usuário');
+  if (user.role === 'admin') document.getElementById('admin-sec').style.display = '';
+
+  // Handle PWA shortcut params
+  var sc = new URLSearchParams(location.search).get('s');
+  var startPage = sc === 'new' ? 'sys-select' : sc === 'list' ? 'list' : 'home';
+  go(startPage);
+}
+
+function updateBadges() {
+  var open = S.reqs.filter(r => r.status === 'open').length;
+  var ob   = document.getElementById('sb-open');
+  if (ob) { ob.textContent = open; ob.style.display = open > 0 ? '' : 'none'; }
+
+  if (S.user && S.user.role === 'admin') {
+    var pend = S.users.filter(u => u.status === 'pending').length;
+    var pb   = document.getElementById('sb-pend');
+    if (pb) { pb.textContent = pend; pb.style.display = pend > 0 ? '' : 'none'; }
+  }
+}
+
+// ════════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════════
+function go(page, sys, opt) {
+  S.page = page;
+  if (sys !== undefined) S.sys = sys;
+  if (opt !== undefined) S.opt = opt;
+  S.formData = {};
+  document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('act'));
+  var navMap = {home:'nav-home',list:'nav-list',admin:'nav-admin','sys-select':'','sys-options':'','form':'','success':'','detail':''};
+  var nid = navMap[page] || ('nav-' + (sys||''));
+  var nb = document.getElementById(nid); if (nb) nb.classList.add('act');
+  renderPage();
+  window.scrollTo(0,0);
+}
+function goSys(sys) { S.sys = sys; go('sys-options', sys); }
+
+// ════════════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════════════
+function isLate(r) { if (!r.prevDate || r.status==='done') return false; return new Date(r.prevDate+'T23:59:59') < new Date(); }
+function fmtD(s) { if (!s) return '–'; var p=s.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+function fmtDT(s) { if (!s) return '–'; return new Date(s).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}); }
+function adhPct(arr) {
+  var done = arr.filter(r => r.status==='done');
+  if (!done.length) return null;
+  var ok = done.filter(r => !r.prevDate||!r.doneAt || new Date(r.doneAt)<=new Date(r.prevDate+'T23:59:59')).length;
+  return Math.round((ok/done.length)*100);
+}
+function adhCol(p) { return p>=80?'#2dbc6e':p>=60?'#e8651a':'#d63027'; }
+function getOpt(sys,opt) { return (SYS_OPTS[sys]||[]).find(o=>o.c===opt)||{n:''}; }
+function genId(sys) {
+  var n=new Date(); var yy=String(n.getFullYear()).slice(2); var mm=String(n.getMonth()+1).padStart(2,'0');
+  var seq = S.reqs.filter(r=>r.sys===sys).length;
+  return sys+'-'+yy+mm+String(seq+1).padStart(3,'0');
+}
+
+var _toastTimer;
+function toast(msg, err) {
+  var old = document.querySelector('.toast'); if (old) old.remove();
+  var t = document.createElement('div');
+  t.className = 'toast' + (err?' err':''); t.textContent = msg;
+  document.body.appendChild(t);
+  clearTimeout(_toastTimer); _toastTimer = setTimeout(() => t.remove(), 3000);
+}
+
+// ════════════════════════════════════════════════
+//  RENDER PAGES
+// ════════════════════════════════════════════════
+function renderPage() {
+  var c = document.getElementById('main-content');
+  c.style.opacity = '0';
+  setTimeout(() => {
+    var titles = {home:'Dashboard',list:'Solicitações','sys-select':'Nova Solicitação','sys-options':'Nova Solicitação',form:'Nova Solicitação',success:'Confirmação',detail:'Detalhes',admin:'Usuários'};
+    document.getElementById('tb-title').textContent = titles[S.page] || 'SGA';
+    var tr = document.getElementById('tb-right'); tr.innerHTML = '';
+    if (S.page==='home'||S.page==='list') {
+      var late = S.reqs.filter(r=>isLate(r)).length;
+      if (late>0) { var lc=document.createElement('span'); lc.className='tb-chip r'; lc.textContent=late+' ATRASADA'+(late>1?'S':''); tr.appendChild(lc); }
+      var nb2=document.createElement('button'); nb2.className='tb-btn p'; nb2.innerHTML='+ Nova'; nb2.onclick=()=>go('sys-select'); tr.appendChild(nb2);
+    }
+    var renders = {home:renderHome,list:renderList,'sys-select':renderSysSelect,'sys-options':renderSysOpts,form:renderForm,success:renderSuccess,detail:renderDetail,admin:renderAdmin};
+    c.innerHTML = (renders[S.page]||(() => ''))();
+    bindInputs();
+    c.style.opacity = '1';
+    c.style.transition = 'opacity .2s';
+  }, 80);
+}
+
+function kpi(em, val, lbl, cls) {
+  return '<div class="kpi'+(cls?' '+cls:'')+'"><div class="kpi-em">'+em+'</div><div class="kpi-val">'+val+'</div><div class="kpi-lbl">'+lbl+'</div></div>';
+}
+function reqRow(r) {
+  var l=isLate(r);
+  var cls='req-row'+(r.status==='done'?' done':'')+(l?' late':'');
+  var sc,st; if(r.status==='done'){sc='spill sp-d';st='OK';}else if(l){sc='spill sp-l';st='ATRASADO';}else{sc='spill sp-o';st='ABERTO';}
+  return '<div class="'+cls+'" data-rid="'+r.id+'" onclick="S.detailId=\''+r.id+'\';go(\'detail\')">'+
+    '<div class="req-id">'+r.id+'</div>'+
+    '<div class="req-info"><div class="req-type">'+r.typeName+'</div><div class="req-sys">'+(SYS[r.sys]?SYS[r.sys].icon+' ':'')+r.sysName+'</div></div>'+
+    '<span class="'+sc+'">'+st+'</span>'+
+    '<div class="req-date">'+fmtD(r.prevDate||r.createdAt)+'</div></div>';
+}
+
+function renderHome() {
+  var reqs=S.reqs, open=reqs.filter(r=>r.status==='open').length, done=reqs.filter(r=>r.status==='done').length, late=reqs.filter(r=>isLate(r)).length;
+  var adh=adhPct(reqs), adhV=adh!=null?adh+'%':'–', adhC=adh!=null?adhCol(adh):'#3d5870', adhF=adh||0;
+  var alert = late>0?'<div class="alert-bar">⚠️ <strong>'+late+' atrasada'+(late>1?'s':'')+'</strong><button class="tb-btn" style="margin-left:auto;padding:4px 10px" onclick="go(\'list\')">Ver →</button></div>':'';
+  var rtBar = '<div class="rt-bar"><div class="rt-dot"></div>Sincronizado em tempo real com Firebase · '+reqs.length+' solicitaç'+(reqs.length!==1?'ões':'ão')+' carregada'+(reqs.length!==1?'s':'')+' ao vivo</div>';
+  var sysBars = Object.keys(SYS).map(sc=>{
+    var sr=reqs.filter(r=>r.sys===sc), sp=adhPct(sr), scol=sp!=null?adhCol(sp):'#1c3352';
+    return '<div class="adh-sys"><div class="adh-sys-top"><span class="adh-sys-code">'+sc+'</span><span class="adh-sys-pct" style="color:'+scol+'">'+(sp!=null?sp+'%':'–')+'</span></div><div class="adh-mini-bg"><div class="adh-mini-fill" style="width:'+(sp||0)+'%;background:'+scol+'"></div></div></div>';
+  }).join('');
+  var sysCards = Object.keys(SYS).map(sc=>{
+    var s=SYS[sc], oc=reqs.filter(r=>r.sys===sc&&r.status==='open').length;
+    return '<div class="sys-card" onclick="goSys(\''+sc+'\')"><div class="sys-ic">'+s.icon+'</div><div style="flex:1"><div class="sys-code">'+sc+'</div><div class="sys-name">'+s.name+'</div>'+(oc>0?'<span class="sys-pill">'+oc+'</span>':'')+'</div><span style="color:var(--t3)">›</span></div>';
+  }).join('');
+  var recent = reqs.slice(0,6);
+  var recHtml = recent.length ? recent.map(reqRow).join('') : '<div class="empty"><div class="empty-ico">📭</div><div>Nenhuma solicitação ainda</div></div>';
+  return alert + rtBar +
+    '<div class="kpi-row">'+kpi('📂',open,'Em Aberto','')+kpi('✅',done,'Concluídas','g')+kpi('⏰',late,'Atrasadas','r')+kpi('📊',reqs.length,'Total','o')+'</div>'+
+    '<div class="row2">'+
+      '<div class="card"><div class="ch"><span class="ct">📊 Aderência aos Prazos</span><span class="cbadge '+(adh==null?'cb-b':adh>=80?'cb-g':adh>=60?'cb-o':'cb-r')+'">'+(adh==null?'—':adh>=80?'BOM':adh>=60?'REGULAR':'CRÍTICO')+'</span></div><div class="adh-num" style="color:'+adhC+'">'+adhV+'</div><div class="adh-bar-bg"><div class="adh-fill" style="width:'+adhF+'%;background:'+adhC+'"></div></div><div class="adh-meta">'+done+' concluída'+(done!==1?'s':'')+'</div><div class="adh-sys-grid">'+sysBars+'</div></div>'+
+      '<div class="card"><div class="ch"><span class="ct">Sistemas</span></div><div class="sys-grid">'+sysCards+'</div></div>'+
+    '</div>'+
+    '<div class="card"><div class="ch"><span class="ct">🕐 Recentes</span><button class="tb-btn" style="padding:4px 10px;font-size:10px" onclick="go(\'list\')">Ver todas →</button></div><div class="req-list">'+recHtml+'</div></div>';
+}
+
+function renderList() {
+  var filters=['ALL','SGF','SAL','SGP','SCA'];
+  var pills=filters.map(f=>'<button class="fpill'+(S.listFilter===f?' act':'')+'" onclick="S.listFilter=\''+f+'\';renderPage()">'+(f==='ALL'?'Todos':f)+'</button>').join('');
+  function cnt(st){return S.reqs.filter(r=>r.status===st&&(S.listFilter==='ALL'||r.sys===S.listFilter)).length;}
+  var tabs='<div class="tab-bar"><button class="tab-btn'+(S.listTab==='open'?' act':'')+'" onclick="S.listTab=\'open\';renderPage()">Em Aberto ('+cnt('open')+')</button><button class="tab-btn'+(S.listTab==='done'?' act':'')+'" onclick="S.listTab=\'done\';renderPage()">Concluídas ('+cnt('done')+')</button></div>';
+  var shown=S.reqs.filter(r=>r.status===S.listTab&&(S.listFilter==='ALL'||r.sys===S.listFilter));
+  var rows=shown.length?shown.map(reqRow).join(''):'<div class="empty"><div class="empty-ico">📭</div><div>Nenhuma solicitação</div></div>';
+  return '<div class="list-bar"><div class="fpills">'+pills+'</div></div>'+tabs+'<div class="req-list">'+rows+'</div>';
+}
+
+function renderSysSelect() {
+  return '<div class="page-hdr"><div class="page-title">Nova Solicitação</div><div class="page-sub">Selecione o sistema</div></div>'+
+    '<div class="sys-sel-grid">'+Object.keys(SYS).map(sc=>{var s=SYS[sc];return '<div class="sys-sel-card" onclick="goSys(\''+sc+'\')"><span class="sys-sel-icon">'+s.icon+'</span><div class="sys-sel-code">'+sc+'</div><div class="sys-sel-name">'+s.name+'</div></div>';}).join('')+'</div>';
+}
+
+function renderSysOpts() {
+  var s=SYS[S.sys];
+  return '<div class="breadcrumb"><span onclick="go(\'sys-select\')">Nova Solicitação</span><span>›</span>'+s.icon+' '+S.sys+'</div>'+
+    '<div class="page-hdr"><div class="page-title">'+s.icon+' '+S.sys+'</div><div class="page-sub">'+s.name+'</div></div>'+
+    '<div class="opt-list">'+(SYS_OPTS[S.sys]||[]).map(o=>'<div class="opt-item" onclick="S.opt=\''+o.c+'\';go(\'form\',S.sys,\''+o.c+'\')"><div class="opt-ic">'+o.c+'</div><div class="opt-txt"><h3>'+o.n+'</h3><p>'+o.d+'</p></div><span style="color:var(--t3);margin-left:auto">›</span></div>').join('')+'</div>';
+}
+
+function renderForm() {
+  var oi=getOpt(S.sys,S.opt), fields=getFields(S.sys,S.opt);
+  var html=fields.map(f=>{
+    if(f.type==='text'||f.type==='email'||f.type==='date')
+      return '<div class="fg"><label class="fl">'+f.lbl+(f.req?' *':'')+'</label><input class="fi" id="ff-'+f.id+'" type="'+f.type+'" '+(f.ph?'placeholder="'+f.ph+'"':'')+'></div>';
+    if(f.type==='textarea')
+      return '<div class="fg"><label class="fl">'+f.lbl+(f.req?' *':'')+'</label><textarea class="fta" id="ff-'+f.id+'" '+(f.ph?'placeholder="'+f.ph+'"':'')+'></textarea></div>';
+    if(f.type==='radio')
+      return '<div class="fg"><label class="fl">'+f.lbl+(f.req?' *':'')+'</label><div class="rg">'+f.opts.map((o,i)=>'<div class="ri" id="ri-'+f.id+'-'+i+'" onclick="selRad(\''+f.id+'\','+i+','+f.opts.length+',\''+o.replace(/'/g,"\\'")+'\')""><div class="rdot"><div class="rdot-in"></div></div><span class="rt">'+o+'</span></div>').join('')+'</div></div>';
+    if(f.type==='checkbox')
+      return '<div class="fg"><label class="fl">'+f.lbl+(f.req?' *':'')+'</label><div class="cbg">'+f.opts.map((o,i)=>'<div class="cbi" id="cbi-'+f.id+'-'+i+'" onclick="togCb(\''+f.id+'\','+i+','+f.opts.length+',\''+o.replace(/'/g,"\\'")+'\')""><div class="cbbox">✓</div><span class="rt">'+o+'</span></div>').join('')+'</div></div>';
+    return '';
+  }).join('');
+  return '<div class="breadcrumb"><span onclick="go(\'sys-select\')">Nova Solicitação</span><span>›</span><span onclick="goSys(\''+S.sys+'\')">'+S.sys+'</span><span>›</span>'+oi.n+'</div>'+
+    '<div class="form-wrap"><div class="form-chip">'+S.sys+' · '+S.opt+'</div><div class="form-title">'+oi.n+'</div>'+
+    '<div class="form-fields">'+html+'</div>'+
+    '<div class="submit-row"><button class="btn-sub" id="form-submit" onclick="submitForm()">✔ Registrar</button><button class="btn-can" onclick="goSys(\''+S.sys+'\')">Cancelar</button></div></div>';
+}
+
+function renderSuccess() {
+  return '<div class="suc"><div class="suc-icon">✅</div><div class="suc-title">Registrada!</div><div class="suc-sub">Salva em tempo real no Firebase.</div><div class="suc-id">'+S.lastId+'</div><div class="suc-btns"><button class="btn-sub" onclick="go(\'home\')">🏠 Início</button><button class="btn-can" onclick="go(\'list\')">📋 Solicitações</button></div></div>';
+}
+
+function renderDetail() {
+  var r=S.reqs.find(x=>x.id===S.detailId);
+  if(!r) return '<div class="empty"><div class="empty-ico">🔍</div><div>Não encontrado</div></div>';
+  var late=isLate(r);
+  var cc,ct; if(r.status==='done'){cc='chip chip-g';ct='Concluído';}else if(late){cc='chip chip-r';ct='Atrasado';}else{cc='chip chip-b';ct='Aberto';}
+  var fields=getFields(r.sys,r.opt);
+  var frows=fields.filter(f=>f.id!=='prevDate').map(f=>{var v=r.fields[f.id];if(!v||(Array.isArray(v)&&!v.length))return '';return '<div class="field-row"><div class="fkey">'+f.lbl+'</div><div class="fval">'+(Array.isArray(v)?v.join(', '):v)+'</div></div>';}).join('');
+  var actions=r.status==='open'
+    ?'<div class="card" style="margin-top:12px"><div class="ct" style="margin-bottom:10px">Ações</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-sub" onclick="markDone(\''+r.id+'\')">✅ Concluída</button><button class="btn-can" onclick="delReq(\''+r.id+'\')">🗑️ Excluir</button></div></div>'
+    :'<div class="card" style="margin-top:12px"><div class="ct" style="margin-bottom:10px">Ações</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-sub" style="background:linear-gradient(135deg,#7c3aed,#5b21b6)" onclick="sendEmail(S.reqs.find(x=>x.id===\''+r.id+'\'))">📧 Notificar Supervisor</button><button class="btn-can" onclick="delReq(\''+r.id+'\')">🗑️ Excluir</button></div></div>';
+  return '<div class="breadcrumb"><span onclick="go(\'list\')">Solicitações</span><span>›</span>'+r.id+'</div>'+
+    '<div class="row3">'+
+    '<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div class="det-id">'+r.id+'</div><span class="'+cc+'">'+ct+'</span></div><div style="font-size:11px;color:var(--t3);margin-bottom:3px">'+(SYS[r.sys]?SYS[r.sys].icon+' ':'')+r.sysName+'</div><div style="font-size:14px;font-weight:700;color:var(--t1)">'+r.typeName+'</div><div class="divider"></div><div class="detail-grid"><div><div class="det-lbl">Abertura</div><div class="det-val">'+fmtD(r.createdAt)+'</div></div><div><div class="det-lbl">Previsão</div><div class="det-val">'+fmtD(r.prevDate)+'</div></div><div><div class="det-lbl">Conclusão</div><div class="det-val">'+fmtD(r.doneAt)+'</div></div></div></div>'+
+    '<div class="card"><div class="ct" style="margin-bottom:12px">Detalhes</div>'+frows+'</div>'+
+    '</div>'+actions;
+}
+
+function renderAdmin() {
+  var pending=S.users.filter(u=>u.status==='pending');
+  var approved=S.users.filter(u=>u.status==='approved');
+  var rejected=S.users.filter(u=>u.status==='rejected');
+  function urow(u,mode){
+    var rt=u.role==='admin'?'<span class="role-tag rt-admin">Admin</span>':'<span class="role-tag rt-user">Usuário</span>';
+    var st=u.status==='approved'?'<span class="st-tag st-appr">Aprovado</span>':u.status==='pending'?'<span class="st-tag st-pend">Pendente</span>':'<span class="st-tag st-rej">Rejeitado</span>';
+    var btns='';
+    if(mode==='pending') btns='<div class="act-btns"><button class="act-btn ab-appr" onclick="approveUser(\''+u.id+'\')">✓ Aprovar</button><button class="act-btn ab-rej" onclick="rejectUser(\''+u.id+'\')">✗ Rejeitar</button></div>';
+    else if(mode==='approved'&&u.role!=='admin') btns='<button class="act-btn ab-rev" onclick="revokeUser(\''+u.id+'\')">Revogar</button>';
+    else if(mode==='rejected') btns='<button class="act-btn ab-appr" onclick="approveUser(\''+u.id+'\')">Reativar</button>';
+    return '<tr><td><strong style="color:var(--t1)">'+u.nome+'</strong></td><td>'+u.pn+'</td><td style="font-size:11px">'+u.email+'</td><td>'+rt+'</td><td>'+st+'</td><td>'+btns+'</td></tr>';
+  }
+  var thead='<thead><tr><th>Nome</th><th>PN</th><th>E-mail</th><th>Perfil</th><th>Status</th><th>Ações</th></tr></thead>';
+  var pendSec=pending.length?'<div class="card" style="margin-bottom:14px"><div class="ch"><span class="ct">⏳ Aguardando Aprovação <span class="pend-cnt">'+pending.length+'</span></span></div><div style="overflow-x:auto"><table class="user-tbl">'+thead+'<tbody>'+pending.map(u=>urow(u,'pending')).join('')+'</tbody></table></div>'+
+    pending.filter(u=>u.justificativa).map(u=>'<div style="margin-top:8px;padding:8px 12px;background:var(--card2);border-radius:7px;border-left:3px solid var(--ylw);font-size:11px;color:var(--t3)"><strong style="color:var(--t2)">'+u.nome+'</strong> · '+u.justificativa+'</div>').join('')+'</div>':'';
+  return '<div class="page-hdr"><div class="page-title">👤 Gestão de Usuários</div><div class="page-sub">Controle de acesso ao SGA</div></div>'+
+    pendSec+
+    '<div class="card"><div id="admin-tab-bar" class="admin-tabs"><button class="admin-tab act" id="atab-0" onclick="aTab(0)">Aprovados ('+approved.length+')</button><button class="admin-tab" id="atab-1" onclick="aTab(1)">Rejeitados ('+rejected.length+')</button></div>'+
+    '<div id="atab-c0" style="overflow-x:auto"><table class="user-tbl">'+thead+'<tbody>'+approved.map(u=>urow(u,'approved')).join('')+'</tbody></table></div>'+
+    '<div id="atab-c1" style="display:none;overflow-x:auto"><table class="user-tbl">'+thead+'<tbody>'+rejected.map(u=>urow(u,'rejected')).join('')+'</tbody></table></div></div>';
+}
+
+function aTab(i){
+  [0,1].forEach(j=>{
+    var t=document.getElementById('atab-'+j), c=document.getElementById('atab-c'+j);
+    if(t) t.className='admin-tab'+(i===j?' act':'');
+    if(c) c.style.display=i===j?'':'none';
+  });
+}
+
+// ════════════════════════════════════════════════
+//  FORM LOGIC
+// ════════════════════════════════════════════════
+function selRad(fid,idx,total,val){
+  for(var i=0;i<total;i++){var el=document.getElementById('ri-'+fid+'-'+i);if(el)el.classList.toggle('sel',i===idx);}
+  S.formData[fid]=val;
+}
+function togCb(fid,idx,total,val){
+  var el=document.getElementById('cbi-'+fid+'-'+idx);if(el)el.classList.toggle('sel');
+  var f=getFields(S.sys,S.opt).find(x=>x.id===fid);if(!f)return;
+  var sel=[];for(var i=0;i<total;i++){var cb=document.getElementById('cbi-'+fid+'-'+i);if(cb&&cb.classList.contains('sel'))sel.push(f.opts[i]);}
+  S.formData[fid]=sel;
+}
+function bindInputs(){
+  if(S.page!=='form')return;
+  getFields(S.sys,S.opt).forEach(f=>{
+    if(['text','email','date','textarea'].includes(f.type)){
+      var el=document.getElementById('ff-'+f.id);
+      if(el) el.oninput=function(){S.formData[f.id]=this.value;};
+    }
+  });
+}
+function submitForm(){
+  var fields=getFields(S.sys,S.opt);
+  for(var f of fields){if(!f.req)continue;var v=S.formData[f.id];if(!v||(Array.isArray(v)&&!v.length)){toast('⚠️ Preencha: '+f.lbl,true);return;}}
+  var btn=document.getElementById('form-submit');if(btn){btn.disabled=true;btn.textContent='Salvando...';}
+  var oi=getOpt(S.sys,S.opt), id=genId(S.sys);
+  var req={id,sys:S.sys,sysName:SYS[S.sys].name,opt:S.opt,typeName:oi.n,status:'open',createdAt:new Date().toISOString(),prevDate:S.formData.prevDate||null,doneAt:null,createdBy:S.user?S.user.nome:'–',fields:{}};
+  Object.entries(S.formData).forEach(([k,v])=>{if(k!=='prevDate')req.fields[k]=v;});
+  _db.ref('sga/requests/'+id).set(req)
+    .then(()=>{S.lastId=id;S.formData={};S.page='success';renderPage();sendEmailNewReq(req);})
+    .catch(err=>{toast('Erro ao salvar: '+err.message,true);if(btn){btn.disabled=false;btn.textContent='✔ Registrar';}});
+}
+
+function markDone(id){
+  _db.ref('sga/requests/'+id).update({status:'done',doneAt:new Date().toISOString()})
+    .then(()=>{toast('✅ Concluída!');var r=S.reqs.find(x=>x.id===id);if(r)setTimeout(()=>sendEmail(r),400);go('detail');})
+    .catch(err=>toast('Erro: '+err.message,true));
+}
+function delReq(id){
+  if(!confirm('Excluir esta solicitação?'))return;
+  _db.ref('sga/requests/'+id).remove()
+    .then(()=>{toast('🗑️ Excluído.');go('list');})
+    .catch(err=>toast('Erro: '+err.message,true));
+}
+
+// ════════════════════════════════════════════════
+//  ADMIN ACTIONS
+// ════════════════════════════════════════════════
+function approveUser(id){_db.ref('sga/users/'+id).update({status:'approved'}).then(()=>{toast('✅ Acesso aprovado!');go('admin');});}
+function rejectUser(id){_db.ref('sga/users/'+id).update({status:'rejected'}).then(()=>{toast('❌ Rejeitado.');go('admin');});}
+function revokeUser(id){if(!confirm('Revogar acesso?'))return;_db.ref('sga/users/'+id).update({status:'rejected'}).then(()=>{toast('⚠️ Revogado.');go('admin');});}
+
+// ════════════════════════════════════════════════
+//  EMAIL (mailto fallback – funciona sem backend)
+// ════════════════════════════════════════════════
+function sendEmailNewReq(r){
+  var det=Object.entries(r.fields).map(([k,v])=>k+': '+(Array.isArray(v)?v.join(', '):v)).join('\n');
+  var subj='[SGA] Nova Solicitação: '+r.id+' – '+r.typeName;
+  var body='Nova solicitação registrada no SGA:\n\nID: '+r.id+'\nSistema: '+r.sysName+'\nTipo: '+r.typeName+'\nPor: '+r.createdBy+'\nData: '+fmtDT(r.createdAt)+'\nPrevisão: '+fmtD(r.prevDate)+'\n\n─ Detalhes ─\n'+det+'\n\n— SGA · ArcelorMittal Brasil · Mina do Andrade';
+  window.open('mailto:thalles.batista@arcelormittal.com.br?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank');
+}
+function sendEmail(r){
+  var subj='[SGA] CONCLUÍDA: '+r.id+' – '+r.typeName;
+  var body='Solicitação concluída no SGA:\n\nID: '+r.id+'\nSistema: '+r.sysName+'\nTipo: '+r.typeName+'\nConclusão: '+fmtDT(r.doneAt)+'\n\n— SGA · ArcelorMittal Brasil · Mina do Andrade';
+  window.open('mailto:thalles.batista@arcelormittal.com.br?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank');
+  toast('📧 E-mail aberto!');
+}
+
+// ════════════════════════════════════════════════
+//  PWA INSTALL
+// ════════════════════════════════════════════════
+var _dip = null;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault(); _dip = e;
+  document.getElementById('pwa-banner').style.display = 'flex';
+});
+function installPWA(){
+  if(!_dip)return;
+  _dip.prompt();
+  _dip.userChoice.then(r=>{ document.getElementById('pwa-banner').style.display='none'; _dip=null; });
+}
+window.addEventListener('appinstalled',()=>{ document.getElementById('pwa-banner').style.display='none'; toast('📲 App instalado!'); });
+
+// ════════════════════════════════════════════════
+//  SERVICE WORKER
+// ════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(r => { console.log('[SW] v4 ok:', r.scope); })
+      .catch(e => console.warn('[SW]', e));
+  });
+}
+
+// ════════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════════
+(function init(){
+  var cfg = loadConfig();
+  if (!cfg) {
+    document.getElementById('setup-screen').style.display = 'flex';
+    return;
+  }
+
+  if (!initFirebase(cfg)) {
+    localStorage.removeItem('sga_fb_cfg');
+    document.getElementById('setup-screen').style.display = 'flex';
+    return;
+  }
+
+  startRealtime();
+
+  var session = localStorage.getItem('sga_session');
+  if (!session) {
+    document.getElementById('auth-screen').style.display = 'flex';
+    showView('login');
+    return;
+  }
+
+  var user = JSON.parse(session);
+  S.user = user;
+
+  // Re-verify status from Firebase
+  _db.ref('sga/users/'+user.id).once('value').then(snap=>{
+    var fresh = snap.val();
+    if (!fresh) { doLogout(); return; }
+    S.user = fresh;
+    localStorage.setItem('sga_session', JSON.stringify(fresh));
+    if (fresh.status === 'approved') { bootApp(fresh); return; }
+    document.getElementById('auth-screen').style.display = 'flex';
+    if (fresh.status === 'pending')  showView('pending');
+    else showView('rejected');
+  }).catch(()=>{
+    document.getElementById('auth-screen').style.display = 'flex';
+    showView('login');
+  });
+})();
+</script>
+</body>
+</html>
