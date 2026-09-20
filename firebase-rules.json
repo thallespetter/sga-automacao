@@ -1,0 +1,10 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "indicadores_app": {
+      ".read": "auth != null && (auth.token.email == 'thalles@indicadores.app' || auth.token.email == 'equipe@indicadores.app')",
+      ".write": "auth != null && auth.token.email == 'thalles@indicadores.app'"
+    }
+  }
+}
